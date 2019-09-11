@@ -47,37 +47,37 @@ def convert_cnf(name):
     print("    _____________________")
 
     list = []
-
     # 各マスに関するリテラル
-    for i in range(n**2):
-        for j in range(n**2):
+    for i in range(n ** 2):
+        for j in range(n ** 2):
             tmp_list = []
-            for k in range(n**2):
-                tmp_list.append(i*(n**4) + j*(n**2) + k + 1)
+            for k in range(n ** 2):
+                tmp_list.append(i * (n ** 4) + j * (n ** 2) + k + 1)
             list.append(tmp_list)
 
     # 各行に関するリテラル
-    for i in range(n**2):
-        for j in range(n**2):
+    for i in range(n ** 2):
+        for j in range(n ** 2):
             tmp_list = []
-            for k in range(n**2):
-                tmp_list.append(i + j*(n**4) + k*(n**2) + 1)
+            for k in range(n ** 2):
+                tmp_list.append(i + j * (n ** 4) + k * (n ** 2) + 1)
             list.append(tmp_list)
 
     # 各列に関するリテラル
-    for i in range(n**2):
-        for j in range(n**2):
+    for i in range(n ** 2):
+        for j in range(n ** 2):
             tmp_list = []
-            for k in range(n**2):
-                tmp_list.append(i + j*(n**2) + k*(n**4) + 1)
+            for k in range(n ** 2):
+                tmp_list.append(i + j * (n ** 2) + k * (n ** 4) + 1)
             list.append(tmp_list)
 
     # 各ブロックに関するリテラル
-    for i in range(n**2):
-        for j in range(n**2):
+    for i in range(n ** 2):
+        for j in range(n ** 2):
             tmp_list = []
-            for k in range(n*n):
-                tmp_list.append(i + (j%n)*(n**3) + int(j/n)*(n**5) + (k%n)*(n**2) + int(k/n)*(n**4) + 1)
+            for k in range(n * n):
+                tmp_list.append(
+                    i + (j % n) * (n ** 3) + int(j / n) * (n ** 5) + (k % n) * (n ** 2) + int(k / n) * (n ** 4) + 1)
             list.append(tmp_list)
 
     # 各マス，行，列，ブロックに同じ数字がひとつ以上現れる． (at-least-one制約)
@@ -96,10 +96,10 @@ def convert_cnf(name):
     for i in range(len(arr)):
         for j in range(len(arr[i])):
             if arr[i][j] != 0:
-                cnf.append(str(i*(n**4) + j*(n**2) + arr[i][j]) + " 0")
+                cnf.append(str(i * (n ** 4) + j * (n ** 2) + arr[i][j]) + " 0")
 
     cnf_number = len(cnf)
-    cnf.insert(0, "p cnf " + str(n**6) + " " + str(cnf_number))
+    cnf.insert(0, "p cnf " + str(n ** 6) + " " + str(cnf_number))
 
     root, ext = os.path.splitext(name)
 
@@ -110,18 +110,19 @@ def convert_cnf(name):
 
     return n
 
+
 # at-most-one制約はpairwise法で記述する．
 def pairwise(l):
     if len(l) < 2:
         return
-    for j in range(len(l)-1):
-        cnf.append("-" + str(l[0]) + " -" + str(l[j+1]) + " 0")
+    for j in range(len(l) - 1):
+        cnf.append("-" + str(l[0]) + " -" + str(l[j + 1]) + " 0")
     l.pop(0)
     return pairwise(l)
 
+
 # solverのlogを解析して，答えを出力
 def analysis_log(name, n):
-
     # logを読み取る．
     log_list = []
     for line in open(name, 'r'):
@@ -141,21 +142,20 @@ def analysis_log(name, n):
     # 出力
     print("   [pazzle answer]")
     print("   _____________________")
-    for i in range(n**2):
+    for i in range(n ** 2):
         print("   |"),
-        for j in range(n**2):
+        for j in range(n ** 2):
             if i == 0:
-                if answer[j + i*(n**2)] % (n**2) == 0:
+                if answer[j + i * (n ** 2)] % (n ** 2) == 0:
                     print(9),
                 else:
-                    print(str(answer[j + i*(n**2)] % (n**2))),
+                    print(str(answer[j + i * (n ** 2)] % (n ** 2))),
             else:
-                print(str(answer[j + i*(n**2)] % (j*(n**2) + i*(n**4)))),
+                print(str(answer[j + i * (n ** 2)] % (j * (n ** 2) + i * (n ** 4)))),
         print("|")
     print("   _____________________")
 
-
-
+# DP HERE!
 def run_and_capture(cmd):
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     buf = []
@@ -172,7 +172,7 @@ def run_and_capture(cmd):
     return ''.join(buf)
 
 if __name__ == '__main__':
-    numpre_name = raw_input("解きたい数独問題のパス : ")
+    numpre_name = raw_input("route path of your puzzle : ")
     root, ext = os.path.splitext(numpre_name)
 
     print("********************SAT-based Sudoku Solver********************")

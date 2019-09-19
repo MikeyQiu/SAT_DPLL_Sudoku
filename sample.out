@@ -1,0 +1,230 @@
+s SAT
+s Solve Time 0.000321s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 0
+s SAT
+s Solve Time 0.000485s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 0
+s SAT
+s Solve Time 0.000189s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 0
+s SAT
+s Solve Time 7.7e-05s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 0
+s SAT
+s Solve Time 0.000114s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 0
+s SAT
+s Solve Time 0.000266s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000436s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000555s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000426s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000366s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000152s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000151s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000206s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000486s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000598s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000405s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000389s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.00014s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000206s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000314s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000377s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.00033s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000559s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000266s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000243s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000226s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000229s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000307s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000362s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 -4 0
+s SAT
+s Solve Time 0.000227s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 -2 3 0
+s SAT
+s Solve Time 0.000211s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 -2 3 0
+s SAT
+s Solve Time 0.000218s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 -2 3 0
+s SAT
+s Solve Time 0.000253s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 -2 3 0
+s SAT
+s Solve Time 0.000214s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 -2 3 0
+s SAT
+s Solve Time 0.000346s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 -2 3 0
+s SAT
+s Solve Time 0.000239s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 -2 3 -4 0
+s SAT
+s Solve Time 0.000237s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 0
+s SAT
+s Solve Time 0.000206s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 4 0
+s SAT
+s Solve Time 0.000232s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 4 0
+s SAT
+s Solve Time 0.000399s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 4 0
+s SAT
+s Solve Time 0.000325s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 4 0
+s SAT
+s Solve Time 0.00023s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 4 0
+s SAT
+s Solve Time 0.000271s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 0
+s SAT
+s Solve Time 0.000535s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 0
+s SAT
+s Solve Time 0.000578s
+s BackTrack Times 0
+s Split Times 0
+v 1 2 -2 3 -4 4 -5 5 0
+s SAT
+s Solve Time 0.000471s
+s BackTrack Times 0
+s Split Times 0
+v 1 -2 3 4 5 0

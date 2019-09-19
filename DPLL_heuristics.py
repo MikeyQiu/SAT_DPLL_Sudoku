@@ -89,21 +89,29 @@ def dimacsParser(name):
 '''
 
 
-def tautologyRule(cnf):
-    # tautology check
+def tautologyRule(cnf,result):
+    simplified=[]
+    c1=literalCounter(cnf)
+    print(c1)
     for clause in cnf:
-        if len(clause) > 1:
-            clause.sort()
-            i, j, = 0, len(clause) - 1
-            while (i <= j):
-                if clause[i] == -clause[j]:
-                    del clause[:]  # delete the clause out of the cnf
-                    break
-                elif clause[i] < -clause[j]:
-                    i += 1
-                else:
-                    j -= 1
-    return cnf
+        print(clause)
+        counter = {}
+        flag=True
+        for literal in clause:
+            if literal not in counter.keys():
+                counter[literal] = 1  # first time appear
+            else:
+                counter[literal] += 1
+        for k in counter:
+            if -k in counter:
+                flag=False
+        if flag==True:
+            simplified.append(clause)
+    c2=literalCounter(simplified)
+    result=list(set(abs(i) for i in c1.keys())-set(abs(j) for j in c2.keys()))#If the variable have been eliminated during the process,give a value
+    return simplified,result
+
+
 
 
 '''
@@ -112,7 +120,15 @@ used for pure rule and herurestic strategy
 #input :list of clauses
 #output :dictionary{(literal,times of appearence)}
 '''
-
+def literalCounter(cnf):
+    counter = {}
+    for clause in cnf:
+        for literal in clause:
+            if literal not in counter.keys():
+                counter[literal] = 1  # first time appear
+            else:
+                counter[literal] += 1
+    return counter
 
 def literal_in_clause_Counter(cnf):
     counter = {}
@@ -167,7 +183,7 @@ def pureRule(cnf):
     result = []
     pureValues = []
     for k, v in counter.items():
-        if -k not in counter:  # only positive or only nagetive value in the counter
+        if -k not in counter.keys():  # only positive or only nagetive value in the counter
             pureValues.append(k)
     for pure in pureValues:
         cnf = simplify(cnf, pure)
@@ -231,7 +247,10 @@ def jeroslow_wangStrategy(cnf):
 
 def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
     # cnf, pure_result = pureRule(cnf)
+    print(cnf)
     cnf, unit_result = unitRule(cnf)
+    print(cnf)
+    print(result)
     result = result + unit_result
     if cnf == -1:
         return []
@@ -263,8 +282,8 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
 def DPLL(name, heuristic_option):
     t0 = time.clock()
     cnf, max_var = dimacsParser(name)
-    cnf = tautologyRule(cnf)
-    solution = DPLLbackTrack(cnf, [], 0, 0, heuristic_option)
+    cnf,result = tautologyRule(cnf,[])
+    solution = DPLLbackTrack(cnf, result, 0, 0, heuristic_option)
     if solution:
         result, bt, sp = solution
         print(bt, sp)
@@ -303,5 +322,5 @@ if __name__ == '__main__':
             DPLL(numpre_name, heuristic_option)
     if quesitionType == 2:
         print("********************General SAT Solver********************")
-        for line in open(numpre_name, 'r'):
+        with open(numpre_name, 'r'):
             DPLL(numpre_name, heuristic_option)

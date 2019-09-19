@@ -25,7 +25,7 @@ def convert2cnf(line):
     # Reading the sudoku problem and chang it into the X-Y-Num Coding
 
     # for line in open(name, 'r'):
-        # str_row = (line[:-1].split(','))
+    # str_row = (line[:-1].split(','))
     row = 1
     col = 1
     for num in line:
@@ -50,11 +50,12 @@ def convert2cnf(line):
         fp.close()
     # return n
 
+
 '''
 #description: script read DIMACS document into python
 #input :cnf document
 #output :list contains clauses and the value of variable
-#####reference on#####
+#***************************reference on*********************************#
 #https://github.com/mxklabs/mxklabs-python/tree/master/mxklabs/dimacs
 '''
 
@@ -64,7 +65,6 @@ def dimacsParser(name):
     cnf.append(list())
     maxvar = 0
     name = name.split(".")[0]
-    # print(name)
     for line in open(name + ".cnf", 'r'):
         tokens = line.split()
         if len(tokens) != 0 and tokens[0] not in ("p", "c"):
@@ -114,17 +114,6 @@ used for pure rule and herurestic strategy
 '''
 
 
-def literalCounter(cnf):
-    counter = {}
-    for clause in cnf:
-        for literal in clause:
-            if literal not in counter.keys():
-                counter[literal] = 1  # first time appear
-            else:
-                counter[literal] += 1
-    return counter
-
-
 def literal_in_clause_Counter(cnf):
     counter = {}
     for clause in cnf:
@@ -137,6 +126,7 @@ def literal_in_clause_Counter(cnf):
                     counter[literal] += 1
                     literal_in_clause[literal] = 1
     return counter
+
 
 '''
 #description:An Auxiliary function used to eliminate clauses with given truth value 
@@ -173,7 +163,7 @@ def simplify(cnf, literal):
 
 
 def pureRule(cnf):
-    counter = literalCounter(cnf)
+    counter = literal_in_clause_Counter(cnf)
     result = []
     pureValues = []
     for k, v in counter.items():
@@ -199,7 +189,7 @@ def unitRule(cnf):
         if len(literal) == 1:
             unit_clauses.append(literal)
 
-    while len(unit_clauses) > 0:
+    while unit_clauses:
         unit = unit_clauses[0]  # list
         cnf = simplify(cnf, unit[0])  # literal
         result += [unit[0]]
@@ -219,16 +209,16 @@ def unitRule(cnf):
 
 
 def splitStrategy(cnf):
-    counter = literalCounter(cnf)
+    counter = literal_in_clause_Counter(cnf)
     return random.choice(counter.keys())
 
 
 def jeroslow_wangStrategy(cnf):
     counter = literal_in_clause_Counter(cnf)
     n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
-    # print (n)
+    print (n)
     n = max(counter, key=counter.get)
-    # print (n)
+    print (n)
     return n
 
 
@@ -239,9 +229,8 @@ def jeroslow_wangStrategy(cnf):
 '''
 
 
-def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes):
+def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
     # cnf, pure_result = pureRule(cnf)
-
     cnf, unit_result = unitRule(cnf)
     result = result + unit_result
     if cnf == -1:
@@ -249,11 +238,18 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes):
     if not cnf:  # everything has been vanished
         return result, backtrackTimes, splitTimes
     # split
-    luckyLiteral = jeroslow_wangStrategy(cnf)
+    # luckyLiteral = splitStrategy(cnf)  # base strategy
+    if heuristic_option == 0:
+        luckyLiteral = splitStrategy(cnf)
+    elif heuristic_option == 1:
+        luckyLiteral = jeroslow_wangStrategy(cnf)
+    #######add your heruistic here############
     splitTimes += 1
-    solution = DPLLbackTrack(simplify(cnf, luckyLiteral), result + [luckyLiteral], backtrackTimes, splitTimes)
+    solution = DPLLbackTrack(simplify(cnf, luckyLiteral), result + [luckyLiteral], backtrackTimes, splitTimes,
+                             heuristic_option)
     if not solution:  # chose the opposite value to backtrack
-        solution = DPLLbackTrack(simplify(cnf, -luckyLiteral), result + [-luckyLiteral], backtrackTimes + 1, splitTimes)
+        solution = DPLLbackTrack(simplify(cnf, -luckyLiteral), result + [-luckyLiteral], backtrackTimes + 1, splitTimes,
+                                 heuristic_option)
     return solution
 
 
@@ -264,41 +260,48 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes):
 '''
 
 
-def DPLL(name):
+def DPLL(name, heuristic_option):
     t0 = time.clock()
     cnf, max_var = dimacsParser(name)
     cnf = tautologyRule(cnf)
-    solution = DPLLbackTrack(cnf, [], 0, 0)
+    solution = DPLLbackTrack(cnf, [], 0, 0, heuristic_option)
     if solution:
         result, bt, sp = solution
         print(bt, sp)
         result.sort(key=lambda x: abs(x))
-        # print ('s SAT')
         t1 = time.clock() - t0
         print ('s SAT')
         print ('s Solve Time ' + str(t1) + 's')
         print ('s BackTrack Times ' + str(bt))
         print ('s Split Times ' + str(sp))
         print ('v ' + ' '.join([str(x) for x in result]) + ' 0')
-        with open(root + '.out', mode='w') as fq:
-            fq.write('s SAT')
-            fq.write('s Solve Time ' + str(t1) + 's')
-            fq.write('v ' + ' '.join([str(x) for x in result]) + ' 0')
+        with open(root + '.out', mode='a') as fq:
+            fq.write('s SAT' + '\n')
+            fq.write('s Solve Time ' + str(t1) + 's' + '\n')
+            fq.write('s BackTrack Times ' + str(bt) + '\n')
+            fq.write('s Split Times ' + str(sp) + '\n')
+            fq.write('v ' + ' '.join([str(x) for x in result]) + ' 0'+'\n')
             fq.close()
     else:
         print ('s not SAT')
-        with open(root + '.out', mode='w') as fq:
+        with open(root + '.out', mode='a') as fq:
             fq.write('s not SAT\n')
 
 
-
-
-
-
 if __name__ == '__main__':
-    numpre_name = raw_input("route path of your puzzle : ")#1000 sudokus.txt
-    root, ext = os.path.splitext(numpre_name)
-    print("********************SAT Sudoku Solver********************")
-    for line in open(numpre_name, 'r'):
-        convert2cnf(line)
-        DPLL(numpre_name)
+    quesitionType = int(raw_input("Type of problem:\n1 sudoku \n2 General SAT\n"))
+    numpre_name = raw_input("route path of your puzzle : ")  # 1000 sudokus.txt
+    heuristic_option = int(raw_input("heuristic you would like to choose, input the digit:"
+                                 "\n0 RANDOM "
+                                 "\n1 Jeroslow_Wang"
+                                 "\n"))
+    root, ext = os.path.splitext(numpre_name)  # SPLIT the name with document suffix
+    if quesitionType == 1:
+        print("********************SAT Sudoku Solver********************")
+        for line in open(numpre_name, 'r'):
+            convert2cnf(line)
+            DPLL(numpre_name, heuristic_option)
+    if quesitionType == 2:
+        print("********************General SAT Solver********************")
+        for line in open(numpre_name, 'r'):
+            DPLL(numpre_name, heuristic_option)

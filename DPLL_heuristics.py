@@ -8,6 +8,7 @@ import math
 import random
 import collections
 import time
+import pandas as pd
 
 # cnf = []
 '''
@@ -89,14 +90,12 @@ def dimacsParser(name):
 '''
 
 
-def tautologyRule(cnf,result):
-    simplified=[]
-    c1=literalCounter(cnf)
-    print(c1)
+def tautologyRule(cnf, result):
+    simplified = []
+    c1 = literalCounter(cnf)
     for clause in cnf:
-        print(clause)
         counter = {}
-        flag=True
+        flag = True
         for literal in clause:
             if literal not in counter.keys():
                 counter[literal] = 1  # first time appear
@@ -104,14 +103,13 @@ def tautologyRule(cnf,result):
                 counter[literal] += 1
         for k in counter:
             if -k in counter:
-                flag=False
-        if flag==True:
+                flag = False
+        if flag == True:
             simplified.append(clause)
-    c2=literalCounter(simplified)
-    result=list(set(abs(i) for i in c1.keys())-set(abs(j) for j in c2.keys()))#If the variable have been eliminated during the process,give a value
-    return simplified,result
-
-
+    c2 = literalCounter(simplified)
+    result = list(set(abs(i) for i in c1.keys()) - set(
+        abs(j) for j in c2.keys()))  # If the variable have been eliminated during the process,give a value
+    return simplified, result
 
 
 '''
@@ -120,6 +118,8 @@ used for pure rule and herurestic strategy
 #input :list of clauses
 #output :dictionary{(literal,times of appearence)}
 '''
+
+
 def literalCounter(cnf):
     counter = {}
     for clause in cnf:
@@ -129,6 +129,7 @@ def literalCounter(cnf):
             else:
                 counter[literal] += 1
     return counter
+
 
 def literal_in_clause_Counter(cnf):
     counter = {}
@@ -226,15 +227,17 @@ def unitRule(cnf):
 
 def splitStrategy(cnf):
     counter = literal_in_clause_Counter(cnf)
-    return random.choice(counter.keys())
+    keys=list(counter)
+    if counter:
+        return random.choice(keys)
 
 
 def jeroslow_wangStrategy(cnf):
     counter = literal_in_clause_Counter(cnf)
     n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
-    print (n)
+    # print(n)
     n = max(counter, key=counter.get)
-    print (n)
+    # print(n)
     return n
 
 
@@ -247,10 +250,10 @@ def jeroslow_wangStrategy(cnf):
 
 def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
     # cnf, pure_result = pureRule(cnf)
-    print(cnf)
+    # print(cnf)
     cnf, unit_result = unitRule(cnf)
-    print(cnf)
-    print(result)
+    # print(cnf)
+    # print(result)
     result = result + unit_result
     if cnf == -1:
         return []
@@ -279,48 +282,64 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
 '''
 
 
-def DPLL(name, heuristic_option):
-    t0 = time.clock()
+def DPLL(name, heuristic_option,csv_result):
+    t0 = time.process_time()
     cnf, max_var = dimacsParser(name)
-    cnf,result = tautologyRule(cnf,[])
+    cnf, result = tautologyRule(cnf, [])
     solution = DPLLbackTrack(cnf, result, 0, 0, heuristic_option)
+    temp_csv_result = []
     if solution:
         result, bt, sp = solution
         print(bt, sp)
         result.sort(key=lambda x: abs(x))
-        t1 = time.clock() - t0
-        print ('s SAT')
-        print ('s Solve Time ' + str(t1) + 's')
-        print ('s BackTrack Times ' + str(bt))
-        print ('s Split Times ' + str(sp))
-        print ('v ' + ' '.join([str(x) for x in result]) + ' 0')
+        t1 = round(time.process_time() - t0 ,4)
+        print('s SAT')
+        print('s Solve Time ' + str(t1) + 's')
+        print('s BackTrack Times ' + str(bt))
+        print('s Split Times ' + str(sp))
+        print('v ' + ' '.join([str(x) for x in result]) + ' 0')
+        temp_csv_result.append("SAT")
+        temp_csv_result.append(t1)
+        temp_csv_result.append(bt)
+        temp_csv_result.append(sp)
+        csv_result.append(temp_csv_result)
         with open(root + '.out', mode='a') as fq:
             fq.write('s SAT' + '\n')
             fq.write('s Solve Time ' + str(t1) + 's' + '\n')
             fq.write('s BackTrack Times ' + str(bt) + '\n')
             fq.write('s Split Times ' + str(sp) + '\n')
-            fq.write('v ' + ' '.join([str(x) for x in result]) + ' 0'+'\n')
+            fq.write('v ' + ' '.join([str(x) for x in result]) + ' 0' + '\n')
             fq.close()
     else:
-        print ('s not SAT')
+        print('s not SAT')
         with open(root + '.out', mode='a') as fq:
             fq.write('s not SAT\n')
+        temp_csv_result.append("not SAT")
+        temp_csv_result.append(0)
+        temp_csv_result.append(0)
+        temp_csv_result.append(0)
 
 
 if __name__ == '__main__':
-    quesitionType = int(raw_input("Type of problem:\n1 sudoku \n2 General SAT\n"))
-    numpre_name = raw_input("route path of your puzzle : ")  # 1000 sudokus.txt
-    heuristic_option = int(raw_input("heuristic you would like to choose, input the digit:"
+    quesitionType = int(input("Type of problem:\n1 sudoku \n2 General SAT\n"))
+    numpre_name = input("route path of your puzzle : ")  # 1000 sudokus.txt
+    heuristic_option = int(input("heuristic you would like to choose, input the digit:"
                                  "\n0 RANDOM "
                                  "\n1 Jeroslow_Wang"
                                  "\n"))
     root, ext = os.path.splitext(numpre_name)  # SPLIT the name with document suffix
     if quesitionType == 1:
         print("********************SAT Sudoku Solver********************")
+        csv_result = []
         for line in open(numpre_name, 'r'):
             convert2cnf(line)
-            DPLL(numpre_name, heuristic_option)
+            DPLL(numpre_name, heuristic_option,csv_result)
+
+        name = ['result', 'solving Time', 'backtracks','splits']
+        test = pd.DataFrame(columns=name, data=csv_result)
+        # print(test)
+        test.to_csv(numpre_name+'.csv', encoding='gbk')
     if quesitionType == 2:
         print("********************General SAT Solver********************")
         with open(numpre_name, 'r'):
-            DPLL(numpre_name, heuristic_option)
+            DPLL(numpre_name, heuristic_option,[])

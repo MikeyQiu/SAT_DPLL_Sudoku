@@ -6,7 +6,7 @@ import sys
 import os.path
 import math
 import random
-import collections
+from collections import defaultdict
 import time
 import pandas as pd
 
@@ -24,9 +24,6 @@ def convert2cnf(line):
     n = int(math.sqrt((math.sqrt(l))))
     print("  square number sudoku plate problem : " + str(n) + "^2")
     # Reading the sudoku problem and chang it into the X-Y-Num Coding
-
-    # for line in open(name, 'r'):
-    # str_row = (line[:-1].split(','))
     row = 1
     col = 1
     for num in line:
@@ -92,7 +89,7 @@ def dimacsParser(name):
 
 def tautologyRule(cnf, result):
     simplified = []
-    c1 = literalCounter(cnf)
+    c1 = literalCounter(cnf,'')
     for clause in cnf:
         counter = {}
         flag = True
@@ -106,7 +103,7 @@ def tautologyRule(cnf, result):
                 flag = False
         if flag == True:
             simplified.append(clause)
-    c2 = literalCounter(simplified)
+    c2 = literalCounter(simplified,'')
     result = list(set(abs(i) for i in c1.keys()) - set(
         abs(j) for j in c2.keys()))  # If the variable have been eliminated during the process,give a value
     return simplified, result
@@ -120,28 +117,14 @@ used for pure rule and herurestic strategy
 '''
 
 
-def literalCounter(cnf):
-    counter = {}
+def literalCounter(cnf, id):
+    counter = defaultdict(int)
     for clause in cnf:
         for literal in clause:
-            if literal not in counter.keys():
-                counter[literal] = 1  # first time appear
+            if id == 'jw':
+                counter[literal] += math.pow(2, -len(clause))
             else:
                 counter[literal] += 1
-    return counter
-
-
-def literal_in_clause_Counter(cnf):
-    counter = {}
-    for clause in cnf:
-        literal_in_clause = {}
-        for literal in clause:
-            if literal not in counter.keys():
-                counter[literal] = 1  # first time appear
-            if literal in counter.keys():
-                if literal not in literal_in_clause.keys():
-                    counter[literal] += 1
-                    literal_in_clause[literal] = 1
     return counter
 
 
@@ -180,7 +163,7 @@ def simplify(cnf, literal):
 
 
 def pureRule(cnf):
-    counter = literal_in_clause_Counter(cnf)
+    counter = literalCounter(cnf,'')
     result = []
     pureValues = []
     for k, v in counter.items():
@@ -206,7 +189,7 @@ def unitRule(cnf):
         if len(literal) == 1:
             unit_clauses.append(literal)
 
-    while unit_clauses:
+    while len(unit_clauses) > 0:
         unit = unit_clauses[0]  # list
         cnf = simplify(cnf, unit[0])  # literal
         result += [unit[0]]
@@ -225,15 +208,15 @@ def unitRule(cnf):
 '''
 
 
-def splitStrategy(cnf):
-    counter = literal_in_clause_Counter(cnf)
-    keys=list(counter)
+def randomStretegy(cnf):
+    counter = literalCounter(cnf,'')
+    keys = list(counter)
     if counter:
         return random.choice(keys)
 
 
 def jeroslow_wangStrategy(cnf):
-    counter = literal_in_clause_Counter(cnf)
+    counter = literalCounter(cnf,'jw')
     n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
     # print(n)
     n = max(counter, key=counter.get)
@@ -250,10 +233,7 @@ def jeroslow_wangStrategy(cnf):
 
 def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
     # cnf, pure_result = pureRule(cnf)
-    # print(cnf)
     cnf, unit_result = unitRule(cnf)
-    # print(cnf)
-    # print(result)
     result = result + unit_result
     if cnf == -1:
         return []
@@ -262,7 +242,7 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
     # split
     # luckyLiteral = splitStrategy(cnf)  # base strategy
     if heuristic_option == 0:
-        luckyLiteral = splitStrategy(cnf)
+        luckyLiteral = randomStretegy(cnf)
     elif heuristic_option == 1:
         luckyLiteral = jeroslow_wangStrategy(cnf)
     #######add your heruistic here############
@@ -282,7 +262,7 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
 '''
 
 
-def DPLL(name, heuristic_option,csv_result):
+def DPLL(name, heuristic_option, csv_result):
     t0 = time.process_time()
     cnf, max_var = dimacsParser(name)
     cnf, result = tautologyRule(cnf, [])
@@ -292,7 +272,7 @@ def DPLL(name, heuristic_option,csv_result):
         result, bt, sp = solution
         print(bt, sp)
         result.sort(key=lambda x: abs(x))
-        t1 = round(time.process_time() - t0 ,4)
+        t1 = round(time.process_time() - t0, 4)
         print('s SAT')
         print('s Solve Time ' + str(t1) + 's')
         print('s BackTrack Times ' + str(bt))
@@ -333,13 +313,13 @@ if __name__ == '__main__':
         csv_result = []
         for line in open(numpre_name, 'r'):
             convert2cnf(line)
-            DPLL(numpre_name, heuristic_option,csv_result)
+            DPLL(numpre_name, heuristic_option, csv_result)
 
-        name = ['result', 'solving Time', 'backtracks','splits']
+        name = ['result', 'solving Time', 'backtracks', 'splits']
         test = pd.DataFrame(columns=name, data=csv_result)
         # print(test)
-        test.to_csv(numpre_name+'.csv', encoding='gbk')
+        test.to_csv(numpre_name + '.csv', encoding='gbk')
     if quesitionType == 2:
         print("********************General SAT Solver********************")
         with open(numpre_name, 'r'):
-            DPLL(numpre_name, heuristic_option,[])
+            DPLL(numpre_name, heuristic_option, [])

@@ -10,6 +10,8 @@ from collections import defaultdict
 import time
 import pandas as pd
 
+arr = []
+arr2 = []
 # cnf = []
 '''
 #description: script turn given sudoku document into cnf formula document
@@ -27,7 +29,7 @@ def convert2cnf(line):
     row = 1
     col = 1
     for num in line:
-        if num != ".":
+        if num != "." and num != "\n":
             s = str(row) + str(col) + str(num)
             cnf.append(s)
         col += 1
@@ -89,7 +91,7 @@ def dimacsParser(name):
 
 def tautologyRule(cnf, result):
     simplified = []
-    c1 = literalCounter(cnf,'')
+    c1 = literalCounter(cnf, '')
     for clause in cnf:
         counter = {}
         flag = True
@@ -103,7 +105,7 @@ def tautologyRule(cnf, result):
                 flag = False
         if flag == True:
             simplified.append(clause)
-    c2 = literalCounter(simplified,'')
+    c2 = literalCounter(simplified, '')
     result = list(set(abs(i) for i in c1.keys()) - set(
         abs(j) for j in c2.keys()))  # If the variable have been eliminated during the process,give a value
     return simplified, result
@@ -163,7 +165,7 @@ def simplify(cnf, literal):
 
 
 def pureRule(cnf):
-    counter = literalCounter(cnf,'')
+    counter = literalCounter(cnf, '')
     result = []
     pureValues = []
     for k, v in counter.items():
@@ -183,6 +185,7 @@ def pureRule(cnf):
 
 
 def unitRule(cnf):
+    t0 = time.process_time()
     unit_clauses = []
     result = []
     for literal in cnf:
@@ -194,10 +197,16 @@ def unitRule(cnf):
         cnf = simplify(cnf, unit[0])  # literal
         result += [unit[0]]
         if cnf == -1:  # simplified returned empty
+            t1 = time.process_time()
+            arr.append(round(t1 - t0, 6))
             return -1, []  # backtrack
         if not cnf:  # everything vanished
+            t1 = time.process_time()
+            arr.append(round(t1 - t0, 6))
             return cnf, result
         unit_clauses = [i for i in cnf if len(i) == 1]
+    t1 = time.process_time()
+    arr.append(round(t1 - t0, 6))
     return cnf, result
 
 
@@ -209,14 +218,14 @@ def unitRule(cnf):
 
 
 def randomStretegy(cnf):
-    counter = literalCounter(cnf,'')
+    counter = literalCounter(cnf, '')
     keys = list(counter)
     if counter:
         return random.choice(keys)
 
 
 def jeroslow_wangStrategy(cnf):
-    counter = literalCounter(cnf,'jw')
+    counter = literalCounter(cnf, 'jw')
     n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
     # print(n)
     n = max(counter, key=counter.get)
@@ -245,6 +254,8 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
         luckyLiteral = randomStretegy(cnf)
     elif heuristic_option == 1:
         luckyLiteral = jeroslow_wangStrategy(cnf)
+    elif heuristic_option == 2:
+        pass
     #######add your heruistic here############
     splitTimes += 1
     solution = DPLLbackTrack(simplify(cnf, luckyLiteral), result + [luckyLiteral], backtrackTimes, splitTimes,
@@ -268,12 +279,17 @@ def DPLL(name, heuristic_option, csv_result):
     cnf, result = tautologyRule(cnf, [])
     solution = DPLLbackTrack(cnf, result, 0, 0, heuristic_option)
     temp_csv_result = []
+    deduction_time = 0
+    for i in arr:
+        deduction_time += i
+    deduction_time = round(deduction_time, 4)
     if solution:
         result, bt, sp = solution
         print(bt, sp)
         result.sort(key=lambda x: abs(x))
         t1 = round(time.process_time() - t0, 4)
         print('s SAT')
+        print('s d Time ' + str(deduction_time) + 's')
         print('s Solve Time ' + str(t1) + 's')
         print('s BackTrack Times ' + str(bt))
         print('s Split Times ' + str(sp))
@@ -285,6 +301,7 @@ def DPLL(name, heuristic_option, csv_result):
         csv_result.append(temp_csv_result)
         with open(root + '.out', mode='a') as fq:
             fq.write('s SAT' + '\n')
+            fq.write('s d Time ' + str(deduction_time) + 's' + '\n')
             fq.write('s Solve Time ' + str(t1) + 's' + '\n')
             fq.write('s BackTrack Times ' + str(bt) + '\n')
             fq.write('s Split Times ' + str(sp) + '\n')
@@ -298,6 +315,7 @@ def DPLL(name, heuristic_option, csv_result):
         temp_csv_result.append(0)
         temp_csv_result.append(0)
         temp_csv_result.append(0)
+    arr.clear()
 
 
 if __name__ == '__main__':
@@ -306,6 +324,7 @@ if __name__ == '__main__':
     heuristic_option = int(input("heuristic you would like to choose, input the digit:"
                                  "\n0 RANDOM "
                                  "\n1 Jeroslow_Wang"
+                                 "\n2 WalkSAT"
                                  "\n"))
     root, ext = os.path.splitext(numpre_name)  # SPLIT the name with document suffix
     if quesitionType == 1:
@@ -318,7 +337,7 @@ if __name__ == '__main__':
         name = ['result', 'solving Time', 'backtracks', 'splits']
         test = pd.DataFrame(columns=name, data=csv_result)
         # print(test)
-        test.to_csv(numpre_name + '.csv', encoding='gbk')
+        test.to_csv(numpre_name + str(heuristic_option) + '.csv', encoding='gbk')
     if quesitionType == 2:
         print("********************General SAT Solver********************")
         with open(numpre_name, 'r'):

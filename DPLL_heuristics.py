@@ -28,21 +28,43 @@ def convert2cnf(line):
     # Reading the sudoku problem and chang it into the X-Y-Num Coding
     row = 1
     col = 1
-    for num in line:
-        if num != "." and num != "\n":
-            s = str(row) + str(col) + str(num)
-            cnf.append(s)
-        col += 1
-        if col == n * n + 1:
-            col = 1
-            row += 1
+    if n<4:
+        for num in line:
+            if num != "." and num != "\n":
+                s = str(row) + str(col) + str(num)
+                cnf.append(s)
+            col += 1
+            if col == n * n + 1:
+                col = 1
+                row += 1
+    else:
+        for num in line:
+            if num != "." and num != "\n":
+                if num.isalpha():
+                    # print(num)
+                    if num=='G':
+                        num=16
+                    else:
+                        num=int('0x'+num,16)
+                        # print(num)
+                s = str(17*17*row+17*col+int(num))
+                cnf.append(s)
+            col += 1
+            if col == n * n + 1:
+                col = 1
+                row += 1
 
     # write the initial numbers and sudoku rules into a single DIMACS file
-    with open(root + '.cnf', mode='w') as fq:
+    with open('sudoku/cnf/'+root + '.cnf', mode='w') as fq:
         fq.truncate()
-        fp = open('sudoku-rules.txt', 'r')
+        if n==3:
+            fp = open('sudoku_rules/sudoku-rules.txt', 'r')
+        elif n==2:
+            fp = open('sudoku_rules/sudoku-rules-4x4.txt', 'r')
+        elif n==4:
+            fp = open('sudoku_rules/sudoku-rules-16x16.txt', 'r')
         for line in fp:
-            fq = open(root + '.cnf', 'a')  # use "a" as append
+            fq = open('sudoku/cnf/'+root + '.cnf', 'a')  # use "a" as append
             fq.write(line)
         for s in cnf:
             fq.write(s + " 0" + '\n')
@@ -65,7 +87,7 @@ def dimacsParser(name):
     cnf.append(list())
     maxvar = 0
     name = name.split(".")[0]
-    for line in open(name + ".cnf", 'r'):
+    for line in open('sudoku/cnf/'+name + ".cnf", 'r'):
         tokens = line.split()
         if len(tokens) != 0 and tokens[0] not in ("p", "c"):
             for tok in tokens:
@@ -127,7 +149,19 @@ def literalCounter(cnf, id):
                 counter[literal] += math.pow(2, -len(clause))
             else:
                 counter[literal] += 1
-    return counter
+    if id=='dlcs':
+        combinedCounter={}
+        for key in counter:
+            if -key in counter:
+                if counter[key]>counter[-key]:
+                    combinedCounter[key]=counter[key]+counter[-key]
+                else:
+                    combinedCounter[-key] = counter[key] + counter[-key]
+            else:
+                combinedCounter[key]=counter[key]
+        return combinedCounter
+    else:
+        return counter
 
 
 '''
@@ -226,12 +260,19 @@ def randomStretegy(cnf):
 
 def jeroslow_wangStrategy(cnf):
     counter = literalCounter(cnf, 'jw')
-    n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
+    # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
     # print(n)
     n = max(counter, key=counter.get)
     # print(n)
     return n
 
+def DLCS(cnf):
+    counter = literalCounter(cnf, 'dlcs')
+    # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
+    # print(n)
+    n = max(counter, key=counter.get)
+    # print(n)
+    return n
 
 '''
 #description: The function used to recurse, recursion depending on choose whether + or - value
@@ -244,6 +285,7 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
     # cnf, pure_result = pureRule(cnf)
     cnf, unit_result = unitRule(cnf)
     result = result + unit_result
+    # print(result)
     if cnf == -1:
         return []
     if not cnf:  # everything has been vanished
@@ -255,7 +297,8 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
     elif heuristic_option == 1:
         luckyLiteral = jeroslow_wangStrategy(cnf)
     elif heuristic_option == 2:
-        pass
+        luckyLiteral = DLCS(cnf)
+        #pass
     #######add your heruistic here############
     splitTimes += 1
     solution = DPLLbackTrack(simplify(cnf, luckyLiteral), result + [luckyLiteral], backtrackTimes, splitTimes,
@@ -285,7 +328,6 @@ def DPLL(name, heuristic_option, csv_result):
     deduction_time = round(deduction_time, 4)
     if solution:
         result, bt, sp = solution
-        print(bt, sp)
         result.sort(key=lambda x: abs(x))
         t1 = round(time.process_time() - t0, 4)
         print('s SAT')
@@ -296,20 +338,21 @@ def DPLL(name, heuristic_option, csv_result):
         print('v ' + ' '.join([str(x) for x in result]) + ' 0')
         temp_csv_result.append("SAT")
         temp_csv_result.append(t1)
+        temp_csv_result.append(deduction_time)
         temp_csv_result.append(bt)
         temp_csv_result.append(sp)
         csv_result.append(temp_csv_result)
-        with open(root + '.out', mode='a') as fq:
+        with open('sudoku/out/'+root + '.out', mode='a') as fq:
             fq.write('s SAT' + '\n')
-            fq.write('s d Time ' + str(deduction_time) + 's' + '\n')
             fq.write('s Solve Time ' + str(t1) + 's' + '\n')
+            fq.write('s Deduction Time ' + str(deduction_time) + 's' + '\n')
             fq.write('s BackTrack Times ' + str(bt) + '\n')
             fq.write('s Split Times ' + str(sp) + '\n')
             fq.write('v ' + ' '.join([str(x) for x in result]) + ' 0' + '\n')
             fq.close()
     else:
         print('s not SAT')
-        with open(root + '.out', mode='a') as fq:
+        with open('sudoku/out/'+root +heuristic_option+ '.out', mode='a') as fq:
             fq.write('s not SAT\n')
         temp_csv_result.append("not SAT")
         temp_csv_result.append(0)
@@ -320,7 +363,7 @@ def DPLL(name, heuristic_option, csv_result):
 
 if __name__ == '__main__':
     quesitionType = int(input("Type of problem:\n1 sudoku \n2 General SAT\n"))
-    numpre_name = input("route path of your puzzle : ")  # 1000 sudokus.txt
+    numpre_name = input("route path of your puzzle : ")  # 9x9.txt
     heuristic_option = int(input("heuristic you would like to choose, input the digit:"
                                  "\n0 RANDOM "
                                  "\n1 Jeroslow_Wang"
@@ -330,15 +373,15 @@ if __name__ == '__main__':
     if quesitionType == 1:
         print("********************SAT Sudoku Solver********************")
         csv_result = []
-        for line in open(numpre_name, 'r'):
+        for line in open('sudoku/txt/'+numpre_name, 'r'):
             convert2cnf(line)
             DPLL(numpre_name, heuristic_option, csv_result)
 
-        name = ['result', 'solving Time', 'backtracks', 'splits']
+        name = ['result', 'solving Time','deduction Time', 'backtracks', 'splits']
         test = pd.DataFrame(columns=name, data=csv_result)
         # print(test)
-        test.to_csv(numpre_name + str(heuristic_option) + '.csv', encoding='gbk')
+        test.to_csv('sudoku/csv/'+numpre_name + str(heuristic_option) + '.csv', encoding='gbk')
     if quesitionType == 2:
         print("********************General SAT Solver********************")
-        with open(numpre_name, 'r'):
+        with open('sudoku/cnf/'+numpre_name, 'r'):
             DPLL(numpre_name, heuristic_option, [])

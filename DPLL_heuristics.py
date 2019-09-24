@@ -3,6 +3,8 @@
 
 
 import sys
+import numba
+from numba import jit, autojit
 import os.path
 import math
 import random
@@ -10,9 +12,8 @@ from collections import defaultdict
 import time
 import pandas as pd
 
-arr = []
-arr2 = []
-# cnf = []
+arr = [0]
+arr2 = [0]
 '''
 #description: script turn given sudoku document into cnf formula document
 #input :sudoku txt document
@@ -28,7 +29,7 @@ def convert2cnf(line):
     # Reading the sudoku problem and chang it into the X-Y-Num Coding
     row = 1
     col = 1
-    if n<4:
+    if n < 4:
         for num in line:
             if num != "." and num != "\n":
                 s = str(row) + str(col) + str(num)
@@ -42,12 +43,12 @@ def convert2cnf(line):
             if num != "." and num != "\n":
                 if num.isalpha():
                     # print(num)
-                    if num=='G':
-                        num=16
+                    if num == 'G':
+                        num = 16
                     else:
-                        num=int('0x'+num,16)
+                        num = int('0x' + num, 16)
                         # print(num)
-                s = str(17*17*row+17*col+int(num))
+                s = str(17 * 17 * row + 17 * col + int(num))
                 cnf.append(s)
             col += 1
             if col == n * n + 1:
@@ -55,16 +56,16 @@ def convert2cnf(line):
                 row += 1
 
     # write the initial numbers and sudoku rules into a single DIMACS file
-    with open('sudoku/cnf/'+root + '.cnf', mode='w') as fq:
+    with open('sudoku/cnf/' + root + '.cnf', mode='w') as fq:
         fq.truncate()
-        if n==3:
+        if n == 3:
             fp = open('sudoku_rules/sudoku-rules.txt', 'r')
-        elif n==2:
+        elif n == 2:
             fp = open('sudoku_rules/sudoku-rules-4x4.txt', 'r')
-        elif n==4:
+        elif n == 4:
             fp = open('sudoku_rules/sudoku-rules-16x16.txt', 'r')
+        fq = open('sudoku/cnf/' + root + '.cnf', 'a')  # use "a" as append
         for line in fp:
-            fq = open('sudoku/cnf/'+root + '.cnf', 'a')  # use "a" as append
             fq.write(line)
         for s in cnf:
             fq.write(s + " 0" + '\n')
@@ -87,7 +88,7 @@ def dimacsParser(name):
     cnf.append(list())
     maxvar = 0
     name = name.split(".")[0]
-    for line in open('sudoku/cnf/'+name + ".cnf", 'r'):
+    for line in open('sudoku/cnf/' + name + ".cnf", 'r'):
         tokens = line.split()
         if len(tokens) != 0 and tokens[0] not in ("p", "c"):
             for tok in tokens:
@@ -149,16 +150,16 @@ def literalCounter(cnf, id):
                 counter[literal] += math.pow(2, -len(clause))
             else:
                 counter[literal] += 1
-    if id=='dlcs':
-        combinedCounter={}
+    if id == 'dlcs':
+        combinedCounter = {}
         for key in counter:
             if -key in counter:
-                if counter[key]>counter[-key]:
-                    combinedCounter[key]=counter[key]+counter[-key]
+                if counter[key] > counter[-key]:
+                    combinedCounter[key] = counter[key] + counter[-key]
                 else:
                     combinedCounter[-key] = counter[key] + counter[-key]
             else:
-                combinedCounter[key]=counter[key]
+                combinedCounter[key] = counter[key]
         return combinedCounter
     else:
         return counter
@@ -173,18 +174,16 @@ def literalCounter(cnf, id):
 '''
 
 
+# @jit(nopython=True)
 def simplify(cnf, literal):
     simplified = []
     for clause in cnf:
         if literal in clause:  # exact match, skip entire clause
             continue
         if -literal in clause:  # match but negative value, remove the negative value,remain the others
-            tempClause = []
-            for l in clause:
-                if l != -literal:
-                    tempClause.append(l)
-            if len(tempClause) == 0:
-                return -1  # the set has been empty
+            tempClause = [i for i in clause if i != -literal]
+            if len(tempClause) == 0:  # the -literal is a unit clause, which means the selection is wrong.
+                return -1  # return for backtrack
             simplified.append(tempClause)
         else:
             simplified.append(clause)
@@ -220,20 +219,19 @@ def pureRule(cnf):
 
 def unitRule(cnf):
     t0 = time.process_time()
-    unit_clauses = []
+    timeout = time.time() + 5 * 60
     result = []
-    for literal in cnf:
-        if len(literal) == 1:
-            unit_clauses.append(literal)
-
+    unit_clauses = [i for i in cnf if len(i) == 1]
     while len(unit_clauses) > 0:
-        unit = unit_clauses[0]  # list
-        cnf = simplify(cnf, unit[0])  # literal
-        result += [unit[0]]
-        if cnf == -1:  # simplified returned empty
+        if time.time() > timeout:
+            return -1, []
+        literal = unit_clauses[0][0]  # first literal of first clause
+        cnf = simplify(cnf, literal)  # literal
+        result += [literal]
+        if cnf == -1:  # simplified returned error selection
             t1 = time.process_time()
             arr.append(round(t1 - t0, 6))
-            return -1, []  # backtrack
+            return -1, []  # request for backtrack
         if not cnf:  # everything vanished
             t1 = time.process_time()
             arr.append(round(t1 - t0, 6))
@@ -249,30 +247,41 @@ def unitRule(cnf):
 #input :list of clauses
 #output :random choice of variable 
 '''
+#add a decorator for couting function calls
+def decorater(fun):
+    def helper(x):
+        helper.count+=1
+        return fun(x)
+        # print("被调用%d次。"%(count))
+    helper.count=0
+    return helper
 
-
+@decorater
 def randomStretegy(cnf):
     counter = literalCounter(cnf, '')
     keys = list(counter)
     if counter:
         return random.choice(keys)
 
-
+@decorater
 def jeroslow_wangStrategy(cnf):
     counter = literalCounter(cnf, 'jw')
     # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
     # print(n)
     n = max(counter, key=counter.get)
-    # print(n)
+    print(n)
+    # arr3.append(1)
     return n
 
+@decorater
 def DLCS(cnf):
     counter = literalCounter(cnf, 'dlcs')
     # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
     # print(n)
     n = max(counter, key=counter.get)
-    # print(n)
+    print(n)
     return n
+
 
 '''
 #description: The function used to recurse, recursion depending on choose whether + or - value
@@ -282,25 +291,25 @@ def DLCS(cnf):
 
 
 def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
+    timeout = time.time() + 5 * 60  # 5 mins from now
     # cnf, pure_result = pureRule(cnf)
     cnf, unit_result = unitRule(cnf)
     result = result + unit_result
     # print(result)
-    if cnf == -1:
+    if cnf == -1 or time.time() > timeout:
         return []
     if not cnf:  # everything has been vanished
+        array=["randomStretegy","jeroslow_wangStrategy","DLCS"]
+        splitTimes=eval(array[heuristic_option]).count
+        print(splitTimes)
+        eval(array[heuristic_option]).count=0
         return result, backtrackTimes, splitTimes
-    # split
-    # luckyLiteral = splitStrategy(cnf)  # base strategy
     if heuristic_option == 0:
         luckyLiteral = randomStretegy(cnf)
     elif heuristic_option == 1:
         luckyLiteral = jeroslow_wangStrategy(cnf)
     elif heuristic_option == 2:
         luckyLiteral = DLCS(cnf)
-        #pass
-    #######add your heruistic here############
-    splitTimes += 1
     solution = DPLLbackTrack(simplify(cnf, luckyLiteral), result + [luckyLiteral], backtrackTimes, splitTimes,
                              heuristic_option)
     if not solution:  # chose the opposite value to backtrack
@@ -319,15 +328,19 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
 def DPLL(name, heuristic_option, csv_result):
     t0 = time.process_time()
     cnf, max_var = dimacsParser(name)
-    cnf, result = tautologyRule(cnf, [])
+    result = []
+    # cnf, result = tautologyRule(cnf, [])
+    # print(time.process_time())
     solution = DPLLbackTrack(cnf, result, 0, 0, heuristic_option)
     temp_csv_result = []
     deduction_time = 0
     for i in arr:
         deduction_time += i
-    deduction_time = round(deduction_time, 4)
     if solution:
         result, bt, sp = solution
+        # sp=0
+        # for i in arr3:
+        #     sp += i
         result.sort(key=lambda x: abs(x))
         t1 = round(time.process_time() - t0, 4)
         print('s SAT')
@@ -342,7 +355,7 @@ def DPLL(name, heuristic_option, csv_result):
         temp_csv_result.append(bt)
         temp_csv_result.append(sp)
         csv_result.append(temp_csv_result)
-        with open('sudoku/out/'+root + '.out', mode='a') as fq:
+        with open('sudoku/out/' + root + str(heuristic_option) + '.out', mode='a') as fq:
             fq.write('s SAT' + '\n')
             fq.write('s Solve Time ' + str(t1) + 's' + '\n')
             fq.write('s Deduction Time ' + str(deduction_time) + 's' + '\n')
@@ -352,7 +365,7 @@ def DPLL(name, heuristic_option, csv_result):
             fq.close()
     else:
         print('s not SAT')
-        with open('sudoku/out/'+root +heuristic_option+ '.out', mode='a') as fq:
+        with open('sudoku/out/' + root + str(heuristic_option) + '.out', mode='a') as fq:
             fq.write('s not SAT\n')
         temp_csv_result.append("not SAT")
         temp_csv_result.append(0)
@@ -367,21 +380,21 @@ if __name__ == '__main__':
     heuristic_option = int(input("heuristic you would like to choose, input the digit:"
                                  "\n0 RANDOM "
                                  "\n1 Jeroslow_Wang"
-                                 "\n2 WalkSAT"
+                                 "\n2 DLCS"
                                  "\n"))
     root, ext = os.path.splitext(numpre_name)  # SPLIT the name with document suffix
     if quesitionType == 1:
         print("********************SAT Sudoku Solver********************")
         csv_result = []
-        for line in open('sudoku/txt/'+numpre_name, 'r'):
+        for line in open('sudoku/txt/' + numpre_name, 'r'):
             convert2cnf(line)
             DPLL(numpre_name, heuristic_option, csv_result)
 
-        name = ['result', 'solving Time','deduction Time', 'backtracks', 'splits']
+        name = ['result', 'solving Time', 'deduction Time', 'backtracks', 'splits']
         test = pd.DataFrame(columns=name, data=csv_result)
         # print(test)
-        test.to_csv('sudoku/csv/'+numpre_name + str(heuristic_option) + '.csv', encoding='gbk')
+        test.to_csv('sudoku/csv/' + numpre_name + str(heuristic_option) + '.csv', encoding='gbk')
     if quesitionType == 2:
         print("********************General SAT Solver********************")
-        with open('sudoku/cnf/'+numpre_name, 'r'):
+        with open('sudoku/cnf/' + numpre_name, 'r'):
             DPLL(numpre_name, heuristic_option, [])

@@ -11,9 +11,12 @@ import random
 from collections import defaultdict
 import time
 import pandas as pd
+import signal
 
 arr = [0]
-arr2 = [0]
+array = ["randomStretegy", "jeroslow_wangStrategy", "DLCS"]
+############Change for the timeout ,the defalut is 60##################
+TIMEOUT = 60
 '''
 #description: script turn given sudoku document into cnf formula document
 #input :sudoku txt document
@@ -247,14 +250,41 @@ def unitRule(cnf):
 #input :list of clauses
 #output :random choice of variable 
 '''
-#add a decorator for couting function calls
+
+
+# a decorator for couting function calls
 def decorater(fun):
     def helper(x):
-        helper.count+=1
+        helper.count += 1
         return fun(x)
-        # print("被调用%d次。"%(count))
-    helper.count=0
+        # print("called %d times。"%(count))
+
+    helper.count = 0
     return helper
+
+
+# a decorator for counting timeout
+def set_timeout(num, callback):
+    def wrap(func):
+        def handle(signum, frame):  # 收到信号 SIGALRM 后的回调函数，第一个参数是信号的数字，第二个参数是the interrupted stack frame.
+            raise RuntimeError
+
+        def to_do(*args, **kwargs):
+            try:
+                signal.signal(signal.SIGALRM, handle)  # 设置信号和回调函数
+                signal.alarm(num)  # 设置 num 秒的闹钟
+                # print('start alarm signal.')
+                r = func(*args, **kwargs)
+                # print('close alarm signal.')
+                signal.alarm(0)  # 关闭闹钟
+                return r
+            except RuntimeError as e:
+                callback(csv_result)
+
+        return to_do
+
+    return wrap
+
 
 @decorater
 def randomStretegy(cnf):
@@ -263,15 +293,17 @@ def randomStretegy(cnf):
     if counter:
         return random.choice(keys)
 
+
 @decorater
 def jeroslow_wangStrategy(cnf):
     counter = literalCounter(cnf, 'jw')
     # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
     # print(n)
     n = max(counter, key=counter.get)
-    print(n)
+    # print(n)
     # arr3.append(1)
     return n
+
 
 @decorater
 def DLCS(cnf):
@@ -279,7 +311,7 @@ def DLCS(cnf):
     # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
     # print(n)
     n = max(counter, key=counter.get)
-    print(n)
+    # print(n)
     return n
 
 
@@ -291,25 +323,20 @@ def DLCS(cnf):
 
 
 def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
-    timeout = time.time() + 5 * 60  # 5 mins from now
+    # global timeout
+    # timeout= time.time() + 2 * 1  # 5 mins from now
+    # print(timeout)
     # cnf, pure_result = pureRule(cnf)
     cnf, unit_result = unitRule(cnf)
     result = result + unit_result
     # print(result)
-    if cnf == -1 or time.time() > timeout:
+    if cnf == -1:
         return []
     if not cnf:  # everything has been vanished
-        array=["randomStretegy","jeroslow_wangStrategy","DLCS"]
-        splitTimes=eval(array[heuristic_option]).count
-        print(splitTimes)
-        eval(array[heuristic_option]).count=0
+        splitTimes = eval(array[heuristic_option]).count
+        eval(array[heuristic_option]).count = 0  # reset the count to 0 for next move
         return result, backtrackTimes, splitTimes
-    if heuristic_option == 0:
-        luckyLiteral = randomStretegy(cnf)
-    elif heuristic_option == 1:
-        luckyLiteral = jeroslow_wangStrategy(cnf)
-    elif heuristic_option == 2:
-        luckyLiteral = DLCS(cnf)
+    luckyLiteral = eval(array[heuristic_option])(cnf)
     solution = DPLLbackTrack(simplify(cnf, luckyLiteral), result + [luckyLiteral], backtrackTimes, splitTimes,
                              heuristic_option)
     if not solution:  # chose the opposite value to backtrack
@@ -325,6 +352,51 @@ def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
 '''
 
 
+def after_timeout(csv_result):  # call function after timeout
+    arr.clear()
+    splitTimes = eval(array[heuristic_option]).count
+    # print(splitTimes)
+    eval(array[heuristic_option]).count = 0  # reset the count to 0 for next move
+    output("TIMEOUT", root, heuristic_option, TIMEOUT, 0, 0, splitTimes, [], csv_result)
+
+
+def output(flag, root, heuristic_option, solve_time, deduction_time, backtrack_time, split_time, result,
+           csv_result):
+    temp_csv_result = []
+    if flag == "TIMEOUT":
+        print('TIMEOUT')
+    elif flag:
+        print('s SAT')
+    else:
+        print('s NOT SAT')
+    print('s Solve Time ' + str(solve_time) + 's')
+    print('s Deduction Time ' + str(deduction_time) + 's')
+    print('s BackTrack Times ' + str(backtrack_time))
+    print('s Split Times ' + str(split_time))
+    print('v ' + ' '.join([str(x) for x in result]) + ' 0')
+    temp_csv_result.append("SAT")
+    temp_csv_result.append(solve_time)
+    temp_csv_result.append(deduction_time)
+    temp_csv_result.append(backtrack_time)
+    temp_csv_result.append(split_time)
+    csv_result.append(temp_csv_result)
+    with open('sudoku/out/' + str(root) + '_' + str(heuristic_option) + '.out', mode='a') as fq:
+        if flag == "TIMEOUT":
+            fq.write('s TIMEOUT' + '\n')
+        elif flag:
+            fq.write('s SAT' + '\n')
+        else:
+            fq.write('s NOT SAT' + '\n')
+        fq.write('s Solve Time ' + str(solve_time) + 's' + '\n')
+        fq.write('s Deduction Time ' + str(deduction_time) + 's' + '\n')
+        fq.write('s BackTrack Times ' + str(backtrack_time) + '\n')
+        fq.write('s Split Times ' + str(split_time) + '\n')
+        fq.write('v ' + ' '.join([str(x) for x in result]) + ' 0' + '\n')
+        fq.close()
+
+
+# set the timelimit for the first variable
+@set_timeout(TIMEOUT, after_timeout)  # 60s
 def DPLL(name, heuristic_option, csv_result):
     t0 = time.process_time()
     cnf, max_var = dimacsParser(name)
@@ -332,45 +404,16 @@ def DPLL(name, heuristic_option, csv_result):
     # cnf, result = tautologyRule(cnf, [])
     # print(time.process_time())
     solution = DPLLbackTrack(cnf, result, 0, 0, heuristic_option)
-    temp_csv_result = []
+    result, backtrack_time, split_time = solution
     deduction_time = 0
     for i in arr:
         deduction_time += i
-    if solution:
-        result, bt, sp = solution
-        # sp=0
-        # for i in arr3:
-        #     sp += i
-        result.sort(key=lambda x: abs(x))
-        t1 = round(time.process_time() - t0, 4)
-        print('s SAT')
-        print('s d Time ' + str(deduction_time) + 's')
-        print('s Solve Time ' + str(t1) + 's')
-        print('s BackTrack Times ' + str(bt))
-        print('s Split Times ' + str(sp))
-        print('v ' + ' '.join([str(x) for x in result]) + ' 0')
-        temp_csv_result.append("SAT")
-        temp_csv_result.append(t1)
-        temp_csv_result.append(deduction_time)
-        temp_csv_result.append(bt)
-        temp_csv_result.append(sp)
-        csv_result.append(temp_csv_result)
-        with open('sudoku/out/' + root + str(heuristic_option) + '.out', mode='a') as fq:
-            fq.write('s SAT' + '\n')
-            fq.write('s Solve Time ' + str(t1) + 's' + '\n')
-            fq.write('s Deduction Time ' + str(deduction_time) + 's' + '\n')
-            fq.write('s BackTrack Times ' + str(bt) + '\n')
-            fq.write('s Split Times ' + str(sp) + '\n')
-            fq.write('v ' + ' '.join([str(x) for x in result]) + ' 0' + '\n')
-            fq.close()
-    else:
-        print('s not SAT')
-        with open('sudoku/out/' + root + str(heuristic_option) + '.out', mode='a') as fq:
-            fq.write('s not SAT\n')
-        temp_csv_result.append("not SAT")
-        temp_csv_result.append(0)
-        temp_csv_result.append(0)
-        temp_csv_result.append(0)
+    deduction_time = round(deduction_time, 4)
+    result.sort(key=lambda x: abs(x))
+    t1 = round(time.process_time() - t0, 4)
+    flag = result
+    # print(flag)
+    output(flag, root, heuristic_option, t1, deduction_time, backtrack_time, split_time, result, csv_result)
     arr.clear()
 
 
@@ -393,7 +436,7 @@ if __name__ == '__main__':
         name = ['result', 'solving Time', 'deduction Time', 'backtracks', 'splits']
         test = pd.DataFrame(columns=name, data=csv_result)
         # print(test)
-        test.to_csv('sudoku/csv/' + numpre_name + str(heuristic_option) + '.csv', encoding='gbk')
+        test.to_csv('sudoku/csv/' + numpre_name +'_'+str(heuristic_option) + '.csv', encoding='gbk')
     if quesitionType == 2:
         print("********************General SAT Solver********************")
         with open('sudoku/cnf/' + numpre_name, 'r'):

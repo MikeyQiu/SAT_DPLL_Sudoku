@@ -2,21 +2,19 @@
 # -*- coding: utf-8 -*-
 
 
-import sys
-import numba
-from numba import jit, autojit
 import os.path
 import math
 import random
 from collections import defaultdict
 import time
 import pandas as pd
+import numpy as np
 import signal
 
 arr = [0]
-array = ["randomStretegy", "jeroslow_wangStrategy", "DLCS"]
+array = ["randomStretegy", "jeroslow_wangStrategy", "DLCS","MOM"]
 ############Change for the timeout ,the defalut is 60##################
-TIMEOUT = 60
+TIMEOUT = 120
 '''
 #description: script turn given sudoku document into cnf formula document
 #input :sudoku txt document
@@ -98,13 +96,15 @@ def dimacsParser(name):
                 lit = int(tok)
                 maxvar = max(maxvar, abs(lit))
                 if lit == 0:
-                    cnf.append(list())
+                    cnf.append([])
                 else:
                     cnf[-1].append(lit)
 
     assert len(cnf[-1]) == 0
     cnf.pop()
+    cnf=np.array(cnf)
     # print(cnf)
+    # print(cnf.shape)
     return (cnf, maxvar)
 
 
@@ -133,7 +133,7 @@ def tautologyRule(cnf, result):
             simplified.append(clause)
     c2 = literalCounter(simplified, '')
     result = list(set(abs(i) for i in c1.keys()) - set(
-        abs(j) for j in c2.keys()))  # If the variable have been eliminated during the process,give a value
+        abs(j) for j in c2.keys()))  # If the variable have been eliminated during the process,give it a value
     return simplified, result
 
 
@@ -190,7 +190,8 @@ def simplify(cnf, literal):
             simplified.append(tempClause)
         else:
             simplified.append(clause)
-    return simplified
+    cnf=simplified
+    return cnf
 
 
 '''
@@ -221,13 +222,12 @@ def pureRule(cnf):
 
 
 def unitRule(cnf):
+    # print("URSTART")
+    # print(cnf)
     t0 = time.process_time()
-    timeout = time.time() + 5 * 60
     result = []
     unit_clauses = [i for i in cnf if len(i) == 1]
     while len(unit_clauses) > 0:
-        if time.time() > timeout:
-            return -1, []
         literal = unit_clauses[0][0]  # first literal of first clause
         cnf = simplify(cnf, literal)  # literal
         result += [literal]
@@ -242,6 +242,8 @@ def unitRule(cnf):
         unit_clauses = [i for i in cnf if len(i) == 1]
     t1 = time.process_time()
     arr.append(round(t1 - t0, 6))
+    # print("UREND")
+    # print(cnf)
     return cnf, result
 
 
@@ -254,9 +256,9 @@ def unitRule(cnf):
 
 # a decorator for couting function calls
 def decorater(fun):
-    def helper(x):
+    def helper(*args, **kwargs):
         helper.count += 1
-        return fun(x)
+        return fun(*args, **kwargs)
         # print("called %d times。"%(count))
 
     helper.count = 0
@@ -289,58 +291,94 @@ def set_timeout(num, callback):
 @decorater
 def randomStretegy(cnf):
     counter = literalCounter(cnf, '')
+    # counter = sorted(counter.items(), key=lambda x: x[1], reverse=True)
+    # print(counter)
     keys = list(counter)
+    #print(keys)
     if counter:
-        return random.choice(keys)
+        k=random.choice(keys)
+        # k=max(counter, key=counter.get)
+        print(k)
+        return k
 
 
 @decorater
 def jeroslow_wangStrategy(cnf):
     counter = literalCounter(cnf, 'jw')
-    # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
-    # print(n)
     n = max(counter, key=counter.get)
-    # print(n)
-    # arr3.append(1)
     return n
 
 
 @decorater
 def DLCS(cnf):
     counter = literalCounter(cnf, 'dlcs')
+    n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
+    print(n)
+    for k,v in n:
+        if k>0:
+            print(k,v)
+            return k
+    n = max(counter, key=counter.get)
+    print(n)
+    return n
+
+@decorater
+def MOM(cnf):
+    def minClauses(cnf):
+        minClauses = []
+        size = -1
+        for clause in cnf:
+            clauseSize = len(clause)
+            # Either the current clause is smaller
+            if size == -1 or clauseSize < size:
+                minClauses = [clause]
+                size = clauseSize
+            elif clauseSize == size:
+                minClauses.append(clause)
+        return minClauses
+    minc = minClauses(cnf)
+    counter = literalCounter(minc, '')
     # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
     # print(n)
     n = max(counter, key=counter.get)
     # print(n)
     return n
 
-
 '''
 #description: The function used to recurse, recursion depending on choose whether + or - value
 #input :list of clauses,the result of variables
 #output :a solution contains list of clauses and result.
 '''
-
-
-def DPLLbackTrack(cnf, result, backtrackTimes, splitTimes, heuristic_option):
-    # global timeout
+backtrackTimes=0
+@decorater
+def DPLLbackTrack(cnf, result, heuristic_option):
+    global backtrackTimes
     # timeout= time.time() + 2 * 1  # 5 mins from now
     # print(timeout)
-    # cnf, pure_result = pureRule(cnf)
     cnf, unit_result = unitRule(cnf)
-    result = result + unit_result
-    # print(result)
+    # cnf, pure_result = pureRule(cnf)
+    #print(pure_result)
+    result = result + unit_result#+pure_result
     if cnf == -1:
         return []
     if not cnf:  # everything has been vanished
         splitTimes = eval(array[heuristic_option]).count
         eval(array[heuristic_option]).count = 0  # reset the count to 0 for next move
-        return result, backtrackTimes, splitTimes
+        # backtrackTimes=DPLLbackTrack.count
+        # print(DPLLbackTrack.count)
+        n=0
+        bt=backtrackTimes
+        backtrackTimes=0
+        return result, bt, splitTimes
     luckyLiteral = eval(array[heuristic_option])(cnf)
-    solution = DPLLbackTrack(simplify(cnf, luckyLiteral), result + [luckyLiteral], backtrackTimes, splitTimes,
+    solution = DPLLbackTrack(simplify(cnf, luckyLiteral), result + [luckyLiteral],
                              heuristic_option)
-    if not solution:  # chose the opposite value to backtrack
-        solution = DPLLbackTrack(simplify(cnf, -luckyLiteral), result + [-luckyLiteral], backtrackTimes + 1, splitTimes,
+    if not solution:  # chose the oppo
+        # site value to backtrack
+        # print("Before BackTracking")
+        # print(backtrackTimes,result)
+        backtrackTimes+=1
+        solution = DPLLbackTrack(simplify(cnf, -luckyLiteral), result + [-luckyLiteral],
                                  heuristic_option)
     return solution
 
@@ -365,16 +403,19 @@ def output(flag, root, heuristic_option, solve_time, deduction_time, backtrack_t
     temp_csv_result = []
     if flag == "TIMEOUT":
         print('TIMEOUT')
+        temp_csv_result.append("TIMEOUT")
     elif flag:
         print('s SAT')
+        temp_csv_result.append("SAT")
     else:
         print('s NOT SAT')
+        temp_csv_result.append("NOT SAT")
     print('s Solve Time ' + str(solve_time) + 's')
     print('s Deduction Time ' + str(deduction_time) + 's')
     print('s BackTrack Times ' + str(backtrack_time))
     print('s Split Times ' + str(split_time))
     print('v ' + ' '.join([str(x) for x in result]) + ' 0')
-    temp_csv_result.append("SAT")
+
     temp_csv_result.append(solve_time)
     temp_csv_result.append(deduction_time)
     temp_csv_result.append(backtrack_time)
@@ -400,10 +441,14 @@ def output(flag, root, heuristic_option, solve_time, deduction_time, backtrack_t
 def DPLL(name, heuristic_option, csv_result):
     t0 = time.process_time()
     cnf, max_var = dimacsParser(name)
+    n=literalCounter(cnf,'')
+    n = sorted(n.items(), key=lambda x: x[1], reverse=True)
+    print(n)
+    print(len(n))
     result = []
     # cnf, result = tautologyRule(cnf, [])
     # print(time.process_time())
-    solution = DPLLbackTrack(cnf, result, 0, 0, heuristic_option)
+    solution = DPLLbackTrack(cnf, result, heuristic_option)
     result, backtrack_time, split_time = solution
     deduction_time = 0
     for i in arr:
@@ -424,6 +469,7 @@ if __name__ == '__main__':
                                  "\n0 RANDOM "
                                  "\n1 Jeroslow_Wang"
                                  "\n2 DLCS"
+                                 "\n3 MOM"
                                  "\n"))
     root, ext = os.path.splitext(numpre_name)  # SPLIT the name with document suffix
     if quesitionType == 1:

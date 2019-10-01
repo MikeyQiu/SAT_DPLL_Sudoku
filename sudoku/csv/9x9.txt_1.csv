@@ -1,0 +1,5 @@
+,result,solving Time,deduction Time,backtracks,splits
+0,SAT,1.3475,1.2687,12,17
+1,SAT,1.9669,1.7315,86,106
+2,SAT,1.8706,1.7125,64,75
+3,SAT,2.5942,2.2617,173,205

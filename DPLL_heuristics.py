@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
+import frozen_dir
 from heuristics import *
 import os.path
 import math
@@ -15,6 +15,8 @@ array = ["randomStrategy", "jeroslow_wangStrategy", "DLCS","MOM", "PNR"]
 TIMEOUT = 120
 
 
+SETUP_DIR = frozen_dir.app_path()
+print(SETUP_DIR)
 def convert2cnf(line):
     """
     Turns given sudoku document into cnf formula document
@@ -58,15 +60,15 @@ def convert2cnf(line):
                 row += 1
 
     # write the initial numbers and sudoku rules into a single DIMACS file
-    with open('sudoku/cnf/' + root + '.cnf', mode='w') as fq:
+    with open(SETUP_DIR+'/sudoku/cnf/' + root + '.cnf', mode='w') as fq:
         fq.truncate()
         if size == 3:
-            fp = open('sudoku_rules/sudoku-rules.txt', 'r')
+            fp = open(SETUP_DIR+'/sudoku_rules/sudoku-rules.txt', 'r')
         elif size == 2:
-            fp = open('sudoku_rules/sudoku-rules-4x4.txt', 'r')
+            fp = open(SETUP_DIR+'/sudoku_rules/sudoku-rules-4x4.txt', 'r')
         elif size == 4:
-            fp = open('sudoku_rules/sudoku-rules-16x16.txt', 'r')
-        fq = open('sudoku/cnf/' + root + '.cnf', 'a')
+            fp = open(SETUP_DIR+'/sudoku_rules/sudoku-rules-16x16.txt', 'r')
+        fq = open(SETUP_DIR+'/sudoku/cnf/' + root + '.cnf', 'a')
         for clause in fp:
             fq.write(clause)
         for s in cnf:
@@ -89,7 +91,7 @@ def dimacsParser(name):
     name = name.split(".")[0]
 
     # add clauses to list
-    for line in open('sudoku/cnf/' + name + ".cnf", 'r'):
+    for line in open(SETUP_DIR+'/sudoku/cnf/' + name + ".cnf", 'r'):
         tokens = line.split()
         if len(tokens) != 0 and tokens[0] not in ("p", "c"):
             for tok in tokens:
@@ -117,7 +119,7 @@ def tautologyRule(cnf):
     simplified = []
     c1 = literalCounter(cnf, '')
 
-    # check fot tautologies
+    # check for tautologies
     for clause in cnf:
         counter = {}
         flag = True
@@ -131,10 +133,10 @@ def tautologyRule(cnf):
                 flag = False
         if flag is True:
             simplified.append(clause)
-
+    # If the variable have been eliminated during the process,give it a value
     c2 = literalCounter(simplified, '')
     result = list(set(abs(i) for i in c1.keys()) - set(
-        abs(j) for j in c2.keys()))  # If the variable have been eliminated during the process,give it a value
+        abs(j) for j in c2.keys()))
     return simplified, result
 
 
@@ -154,7 +156,7 @@ def simplify(cnf, literal):
             continue
         if -literal in clause:  # match but negative value, remove the negative value,remain the others
             tempClause = [i for i in clause if i != -literal]
-            if len(tempClause) == 0:  # the -literal is a unit clause, which means the selection is wrong.
+            if len(tempClause) == 0:  # the -literal is an unit clause, which means the selection is wrong.
                 return -1  # return for backtrack
             simplified.append(tempClause)
         else:
@@ -183,17 +185,17 @@ def unitRule(cnf):
         cnf = simplify(cnf, literal)  # literal
         result += [literal]
 
-        if cnf == -1:  # simplified returned error selection
+        if cnf == -1:  # simplify function returned error selection
             t1 = time.process_time()
             arr.append(round(t1 - t0, 6))
             return -1, []  # request for backtrack
 
-        if not cnf:  # all clauses satisfied
+        if not cnf:  # all clauses are satisfied
             t1 = time.process_time()
             arr.append(round(t1 - t0, 6))
             return cnf, result
 
-        # update list of unit clauses
+        # update the list of unit clauses
         unit_clauses = [i for i in cnf if len(i) == 1]
     t1 = time.process_time()
     arr.append(round(t1 - t0, 6))
@@ -234,7 +236,7 @@ def DPLLbackTrack(cnf, result, heuristic_option):
     cnf, unit_result = unitRule(cnf)
     result = result + unit_result
 
-    # if cnf is -1, return empty list
+    # if the select value is wrong, return empty list to reselect a polarity
     if cnf == -1:
         return []
 
@@ -246,7 +248,7 @@ def DPLLbackTrack(cnf, result, heuristic_option):
         backtrackTimes = 0
         return result, bt, splitTimes
 
-    # pick next literal to assign truth value to
+    # pick next literal to assign truth value to according to heuristic option
     luckyLiteral = eval(array[heuristic_option])(cnf)
 
     # recurse
@@ -295,7 +297,7 @@ def output(flag, root, heuristic_option, solve_time, deduction_time, backtrack_t
     csv_result.append(temp_csv_result)
 
     # write data to output file
-    with open('sudoku/out/' + str(root) + '_' + str(heuristic_option) + '.out', mode='a') as fq:
+    with open(SETUP_DIR+'/sudoku/out/' + str(root) + '_' + str(heuristic_option) + '.out', mode='a') as fq:
         if flag == "TIMEOUT":
             fq.write('s TIMEOUT' + '\n')
         elif flag:
@@ -344,7 +346,7 @@ if __name__ == '__main__':
         questionType = input("Please enter 1 for sudoku and 2 for general SAT.\n1 sudoku \n2 General SAT\n")
     questionType = int(questionType)
 
-    numpre_name = input("route path of your puzzle : ")
+    numpre_name = input("document name of your puzzle : \n.txt for sudoku and .cnf for general SAT\n")
 
     heuristics = ['0', '1', '2', '3', '4']
     heuristic_option = input("""Please enter the number of the heuristic you would like to choose:
@@ -371,15 +373,15 @@ if __name__ == '__main__':
         csv_result = []
         name = ['result', 'solving Time', 'deduction Time', 'backtracks', 'splits']
 
-        for line in open('sudoku/txt/' + numpre_name, 'r'):
+        for line in open(SETUP_DIR+'/sudoku/txt/' + numpre_name, 'r'):
 
             convert2cnf(line)
             DPLL(numpre_name, heuristic_option, csv_result)
 
             test = pd.DataFrame(columns=name, data=csv_result)
-            test.to_csv('sudoku/csv/' + numpre_name +'_'+str(heuristic_option) + '.csv', encoding='gbk')
+            test.to_csv(SETUP_DIR+'/sudoku/csv/' + numpre_name +'_'+str(heuristic_option) + '.csv', encoding='gbk')
 
     if questionType == 2:
         print("********************General SAT Solver********************")
-        with open('sudoku/cnf/' + numpre_name, 'r'):
+        with open(SETUP_DIR+'/sudoku/cnf/' + numpre_name, 'r'):
             DPLL(numpre_name, heuristic_option, [])

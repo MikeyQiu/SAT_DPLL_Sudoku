@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 arr = [0]
-array = ["randomStrategy", "jeroslow_wangStrategy", "DLCS","MOM", "PNR"]
+array = ["randomStrategy", "jeroslow_wangStrategy", "DLCS", "PNR"]
 
 ############Change for the timeout ,the default is 60##################
 TIMEOUT = 120
@@ -360,15 +360,13 @@ if __name__ == '__main__':
                                  0 RANDOM 
                                  1 Jeroslow_Wang
                                  2 DLCS
-                                 3 MOM
-                                 4 PNR\n""")
+                                 3 PNR\n""")
     while heuristic_option not in heuristics:
         heuristic_option = input("""Please choose one of following numbers:
                                  0 RANDOM 
                                  1 Jeroslow_Wang
                                  2 DLCS
-                                 3 MOM
-                                 4 PNR\n""")
+                                 3 PNR\n""")
     heuristic_option = int(heuristic_option)
 
     root, ext = os.path.splitext(numpre_name)  # SPLIT the name with document suffix

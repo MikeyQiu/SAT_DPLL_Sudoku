@@ -85,28 +85,6 @@ def DLCS(cnf):
     return n
 
 @decorator
-def MOM(cnf):
-    def minClauses(cnf):
-        minClauses = []
-        size = -1
-        for clause in cnf:
-            clauseSize = len(clause)
-            # Either the current clause is smaller
-            if size == -1 or clauseSize < size:
-                minClauses = [clause]
-                size = clauseSize
-            elif clauseSize == size:
-                minClauses.append(clause)
-        return minClauses
-    minc = minClauses(cnf)
-    counter = literalCounter(minc, '')
-    # n = sorted(counter.items(), key=lambda x: x[1], reverse=True)
-    # print(n)
-    n = max(counter, key=counter.get)
-    # print(n)
-    return n
-
-@decorator
 def PNR(cnf):
     counter = literalCounter(cnf, 'pnr')
     return max(counter, key=counter.get)

@@ -7,7 +7,6 @@ SAT solver for sudoku problem and general SAT problem with the input file format
 The program will out put whether the input document is satisfiable, if so, it will give one of the possible solution.
 ##2.Getting started
 You can click the DPLL_heuristics.exe to run the problem.
-Or you can start by command line "python DPLL_heuristics.py "
 ##3.Project menu
 ├── DPLL_heuristics     //.exe format for use
 ├── DPLL_heuristics.py  //main body of the DPLL algorithm

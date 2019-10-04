@@ -1,0 +1,42 @@
+s SAT
+s Solve Time 0.0023s
+s Deduction Time 0.0001s
+s BackTrack Times 0
+s Split Times 1
+v 1 4 5 0
+s SAT
+s Solve Time 0.0025s
+s Deduction Time 0.0001s
+s BackTrack Times 0
+s Split Times 1
+v 1 4 5 0
+s SAT
+s Solve Time 0.0006s
+s Deduction Time 0.0s
+s BackTrack Times 0
+s Split Times 1
+v 1 4 5 0
+s SAT
+s Solve Time 0.0011s
+s Deduction Time 0.0s
+s BackTrack Times 0
+s Split Times 1
+v 1 4 5 0
+s SAT
+s Solve Time 0.0009s
+s Deduction Time 0.0s
+s BackTrack Times 0
+s Split Times 1
+v 1 4 5 0
+s SAT
+s Solve Time 0.0007s
+s Deduction Time 0.0s
+s BackTrack Times 0
+s Split Times 1
+v 1 4 5 0
+s SAT
+s Solve Time 0.0017s
+s Deduction Time 0.0s
+s BackTrack Times 0
+s Split Times 1
+v 1 4 4 5 5 0

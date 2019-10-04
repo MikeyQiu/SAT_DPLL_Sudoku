@@ -117,7 +117,7 @@ def tautologyRule(cnf):
 
     # initialize variables
     simplified = []
-    c1 = literalCounter(cnf, '')
+    c1=literalCounter(cnf,"")
 
     # check for tautologies
     for clause in cnf:
@@ -128,6 +128,7 @@ def tautologyRule(cnf):
                 counter[literal] = 1  # first time appear
             else:
                 counter[literal] += 1
+        # print(counter)
         for k in counter:
             if -k in counter:
                 flag = False
@@ -135,6 +136,8 @@ def tautologyRule(cnf):
             simplified.append(clause)
     # If the variable have been eliminated during the process,give it a value
     c2 = literalCounter(simplified, '')
+    # print(c1)
+    # print(c2)
     result = list(set(abs(i) for i in c1.keys()) - set(
         abs(j) for j in c2.keys()))
     return simplified, result
@@ -322,13 +325,17 @@ def DPLL(name, heuristic_option, csv_result):
     t0 = time.process_time()
     cnf = dimacsParser(name)
 
-    cnf, result = tautologyRule(cnf)
+    cnf, result= tautologyRule(cnf)
     result, backtrack_time, split_time = DPLLbackTrack(cnf, result, heuristic_option)
 
     deduction_time = 0
     for i in arr:
         deduction_time += i
     deduction_time = round(deduction_time, 4)
+    print(result)
+    c1 = literalCounter(cnf, '')
+    c2= set([abs(i) for i in result])
+    result += list(set(abs(i) for i in c1.keys())-c2)
     result.sort(key=lambda x: abs(x))
     t1 = round(time.process_time() - t0, 4)
     flag = result

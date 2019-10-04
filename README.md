@@ -6,8 +6,8 @@ Python 3.7<br>
 This SAT solver can solve sudoku problem of 4x4,9x9 and 16x16 with specific format and general SAT problem with the input file format of DIMACS.<br>
 The program will out put whether the input document is satisfiable, if so, it will give one of the possible solution.<br>
 ## 2.Getting started<br>
-You can click the DPLL_heuristics.exe to run the problem.<br>
-Or you can start by command line "python DPLL_heuristics.py "<br>
+You can directly click the DPLL_heuristics.exe to run the problem.<br>
+Or after install required library through "pip install -r requirements", you can start by command line "python DPLL_heuristics.py "<br>
 ## 3.Project menu<br>
 ├── DPLL_heuristics     //.exe format for use<br>
 ├── DPLL_heuristics.py  //main body of the DPLL algorithm<br>

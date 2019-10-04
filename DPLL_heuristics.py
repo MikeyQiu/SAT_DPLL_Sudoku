@@ -332,7 +332,7 @@ def DPLL(name, heuristic_option, csv_result):
     for i in arr:
         deduction_time += i
     deduction_time = round(deduction_time, 4)
-    print(result)
+    # give postive values to those variable being vanishede that doesn't influence the result
     c1 = literalCounter(cnf, '')
     c2= set([abs(i) for i in result])
     result += list(set(abs(i) for i in c1.keys())-c2)
